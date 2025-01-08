@@ -1,0 +1,1199 @@
+
+```{r}
+library(dplyr)
+library(scales)
+library(tidyr)
+library(reshape2)
+library(ggplot2)
+library(factoextra)
+library(caret)
+library(readr)
+library(e1071)
+library(rpart)
+library(Metrics)
+library(randomForest)
+```
+
+```{r}
+data <- read.csv(file = "cleaned_dataset1.csv", header = TRUE, sep = ",", stringsAsFactors = FALSE)
+```
+
+
+```{r}
+View(data)
+```
+
+
+
+```{r}
+set.seed(123)  # Set a seed for reproducibility
+sampled_rows <- sample(nrow(data), 5000, replace = FALSE)
+df_subset <- data[sampled_rows, ]
+
+lapply(df_subset[sapply(df_subset,is.numeric)], shapiro.test)
+```
+
+# Univariate Analysis
+
+
+```{r}
+ggplot(data, aes(x=avg_price_per_room)) + 
+  geom_histogram(binwidth = 9, color= 'black', fill='darkgreen',alpha = 0.8) + 
+  ggtitle("Histogram of Average Room Price") +
+  xlab("average_price_per_room") + 
+  ylab("Number of Bookings (sqrt Scaled)") +
+  scale_y_sqrt(breaks = breaks_extended(15)) +
+  scale_x_continuous(breaks=seq(min(data$avg_price_per_room), 
+                                max(data$avg_price_per_room), 
+                                by=50)) +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+
+
+```{r}
+table(as.factor(data$no_of_adults))
+```
+
+
+```{r}
+ggplot(data, aes(x=no_of_adults)) + geom_bar(color = 'black',fill='darkgreen',alpha = 0.9) +
+  xlab("no_of_adults") + 
+  ylab("Number of Bookings (sqrt Scaled)") +
+  scale_y_sqrt(breaks = breaks_extended(10)) +
+  ggtitle("Histogram of Number of Adults") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+```{r}
+table(as.factor(data$no_of_children))
+```
+
+
+```{r}
+ggplot(data, aes(x=no_of_children)) + 
+  geom_bar(color = 'black',fill='darkgreen',alpha = 0.9) + 
+  xlab("no_of_children") + 
+  ylab("Number of Bookings (sqrt Scaled)") +
+  scale_y_sqrt(breaks = breaks_extended(10)) +
+  scale_x_continuous(breaks=seq(min(data$no_of_children), 
+                                max(data$no_of_children), 
+                                by=1)) +
+  ggtitle("Histogram of Number of Children") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+```{r}
+table(as.factor(data$no_of_weekend_nights))
+```
+
+
+```{r}
+ggplot(data, aes(x=factor(no_of_weekend_nights))) + 
+  geom_bar(color = 'black',fill='darkgreen',alpha = 0.9) + 
+  xlab("no_of_weekend_nights") + 
+  ylab("Number of Bookings (sqrt Scaled)") + 
+  scale_y_sqrt(breaks = breaks_extended(10)) +
+  ggtitle("Histogram of Number of Weekend Nights") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+```{r}
+table(as.factor(data$no_of_week_nights))
+```
+
+```{r}
+ggplot(data, aes(x=factor(no_of_week_nights))) + 
+  geom_bar(color = 'black',fill='darkgreen',alpha = 0.8) + 
+  xlab("no_of_week_nights") + 
+  ylab("Number of Bookings (sqrt Scaled)") + 
+  scale_y_sqrt(breaks = breaks_extended(15)) +
+  ggtitle("Histogram of Number of Week Nights") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+```{r}
+ggplot(data, aes(x=lead_time)) + geom_histogram(binwidth = 10, color = 'black',fill='darkgreen',alpha = 0.8) +
+  xlab("lead_time") + 
+  ylab("Number of Bookings") +
+  scale_x_continuous(breaks=seq(min(data$lead_time), 
+                                max(data$lead_time), 
+                                by=50)) +
+  ggtitle("Histogram of Lead Time") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+```{r}
+table(as.factor(data$no_of_previous_cancellations))
+```
+
+
+```{r}
+ggplot(data, aes(x=no_of_previous_cancellations)) +
+  geom_bar(color = 'black', fill='darkgreen', alpha = 0.85) +
+  xlab("no_of_previous_cancellations") +
+  ylab("Number of Bookings (log10 scaled)") +
+  scale_y_log10() + 
+  scale_x_continuous(breaks=seq(min(data$no_of_previous_cancellations), 
+                                max(data$no_of_previous_cancellations), 
+                                by=1)) +
+  ggtitle("Histogram of Number of Previous Cancellations") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+
+
+```{r}
+ggplot(data, aes(x=no_of_previous_bookings_not_canceled)) + geom_bar(width=0.9, color = 'black',fill='darkgreen',alpha = 0.8) +   xlab("no_of_previous_bookings_not_canceled") +   
+  ylab("Number of Bookings (log10 scaled)") +
+  scale_y_log10() +
+  scale_x_continuous(breaks=seq(min(data$no_of_previous_bookings_not_canceled), 
+                                max(data$no_of_previous_bookings_not_canceled), 
+                                by=5)) +
+  ggtitle("Histogram of Number of not Cancelled Previous Bookings") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+```{r}
+table(as.factor(data$no_of_special_requests))
+```
+
+
+```{r}
+ggplot(data, aes(x=factor(no_of_special_requests ))) + 
+  geom_bar(color = 'black',fill='darkgreen',alpha = 0.9) + 
+  xlab("no_of_special_requests ") + 
+  ylab("Number of Bookings (sqrt Scaled)") +
+  scale_y_sqrt(breaks = breaks_extended(15))  +
+  ggtitle("Histogram of Number of Special Requests") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+```{r}
+ggplot(data, aes(x=factor(arrival_year))) + 
+  geom_bar(width = 0.7, color = 'black',fill='darkgreen',alpha = 0.9) + 
+  xlab("arrival_year") + 
+  ylab("Number of Bookings") +
+  scale_y_continuous(breaks=c(6514, 29761))  +
+  ggtitle("Histogram of Arrival Year") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+```{r}
+ggplot(data, aes(x=factor(arrival_month))) + 
+  geom_bar(width=0.925,color = 'black',fill='darkgreen',alpha = 0.85) + 
+  xlab("arrival_month") + 
+  ylab("Number of Bookings") +
+  scale_y_continuous(breaks = seq(0, 8000, by=1000)) +
+  ggtitle("Histogram of Arrival Month") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+```{r}
+ggplot(data, aes(x=factor(arrival_date))) + 
+  geom_bar(width=0.9,color = 'black',fill='darkgreen',alpha = 0.85) + 
+  xlab("arrival_date") + 
+  ylab("Number of Bookings") +
+  scale_y_continuous(breaks = c(0,200,400,600,800,1000,1200,1400)) +
+  ggtitle("Histogram of Arrival Date") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+```{r}
+ggplot(data, aes(x=type_of_meal_plan )) + 
+  geom_bar(color = 'black',fill='darkgreen', alpha = 0.9) + 
+  xlab("Type of Meal Plan") + 
+  ylab("Number of Bookings (sqrt Scaled)") +
+  scale_y_sqrt(breaks = breaks_extended(10)) +
+  ggtitle("Histogram of Meal Plan Type") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+```{r}
+ggplot(data, aes(x=factor(required_car_parking_space))) + 
+  geom_bar(color = 'black',fill='darkgreen',alpha = 0.9) + 
+  xlab("Car Parking Required") +
+  ylab("Number of Bookings(sqrt Scaled)") +
+  scale_y_sqrt(breaks = c(35147, 1128)) +
+  ggtitle("Histogram of Car Parking Requirement") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+```{r}
+ggplot(data, aes(x = room_type_reserved)) +
+  geom_bar(stat = "count", color = 'black', fill = 'darkgreen', alpha = 0.85) +
+  xlab("Room Type") +
+  ylab("Number of Bookings (sqrt Scaled)") +
+  scale_y_sqrt(breaks = breaks_extended(10)) +
+  ggtitle("Histogram of Room Type") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+
+
+```{r}
+table(as.factor(data$repeated_guest))
+```
+
+
+```{r}
+ggplot(data, aes(x=factor(repeated_guest))) + 
+  geom_bar(color = 'black',fill='darkgreen',alpha = 0.9) + 
+  xlab("Repeated Guest") +
+  ylab("Number of Bookings (sqrt Scaled)") +
+  scale_y_sqrt(breaks = c(35344, 930)) +
+  ggtitle("Histogram of Repeated Guest") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+```{r}
+table(as.factor(data$booking_status))
+```
+
+```{r}
+ggplot(data, aes(x=booking_status)) + 
+  geom_bar(color = 'black',fill='darkgreen',alpha = 0.9) +
+  xlab("Booking Status") +
+  ylab("Number of Bookings") +
+  scale_y_continuous(breaks=c(11885, 24389)) +
+  ggtitle("Histogram of Booking Status") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+```{r}
+names(data[sapply(data, is.numeric)])
+```
+
+```{r}
+ggplot(data, aes(x=no_of_adults, y=avg_price_per_room)) +
+  geom_point(shape=1,size=1.5, colour="#D17A00", stroke = 0.4) +
+  geom_smooth(method = "lm") + 
+  xlab("no_of_adults") + 
+  ylab("avg_price_per_room") +
+  ggtitle("Scatter Plot of Number of Adults vs Average Room Price") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+```{r}
+ggplot(data, aes(x=no_of_children, y=avg_price_per_room)) +
+  geom_point(shape=1,size=1.5, colour="#D17A00", stroke = 0.5) +
+  geom_smooth(method = "lm") + 
+  xlab("no_of_children") + 
+  ylab("avg_price_per_room") +
+  scale_x_continuous(breaks=seq(c(1,2,3,5,6,7,8,9,10,11))) +
+  ggtitle("Scatter Plot of Number of Children vs Average Room Price") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+```{r}
+subset(data, no_of_children > 5)
+```
+
+```{r}
+ggplot(data, aes(x=no_of_weekend_nights, y=avg_price_per_room)) +
+  geom_point(shape=1,size=1.5, colour="#D17A00", stroke = 0.4) +
+  geom_smooth(method = "lm") + 
+  xlab("no_of_weekend_nights") + 
+  ylab("avg_price_per_room") +
+  ggtitle("Scatter Plot of Number of Weekend Nights vs Average Room Price") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+```{r}
+ggplot(data, aes(x=no_of_week_nights, y=avg_price_per_room)) +
+  geom_point(shape=1,size=1.5, colour="#D17A00", stroke = 0.4) +
+  geom_smooth(method = "lm") + 
+  xlab("no_of_week_nights") + 
+  ylab("avg_price_per_room") +
+  ggtitle("Scatter Plot of Number of Week Nights vs Average Room Price") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+```{r}
+ggplot(data, aes(x=lead_time, y=avg_price_per_room)) +
+  geom_point(shape=1,size=1, colour="#D17A00", stroke = 0.35) +
+  geom_smooth(method = "lm") + 
+  xlab("lead_time") + 
+  ylab("avg_price_per_room") +
+  ggtitle("Scatter Plot of Lead Time vs Average Room Price") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+```{r}
+ggplot(data, aes(x=arrival_month, y=avg_price_per_room)) +
+  geom_point(shape=1,size=1.5, colour="#D17A00", stroke = 0.5) +
+  geom_smooth(method = "lm") + 
+  xlab("arrival_month") + 
+  ylab("avg_price_per_room") +
+  scale_x_continuous(breaks=seq(c(1,2,3,4,5,6,7,8,9,10,11,12))) +
+  ggtitle("Scatter Plot of Arrival Month vs Average Room Price") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+```{r}
+ggplot(data, aes(x=arrival_date, y=avg_price_per_room)) +
+  geom_point(shape=1,size=1.5, colour="#D17A00", stroke = 0.5) +
+  geom_smooth(method = "lm") + 
+  xlab("arrival_date") + 
+  ylab("avg_price_per_room") +
+  ggtitle("Scatter Plot of Arrival Date vs Average Room Price") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+```{r}
+ggplot(data, aes(x=no_of_previous_cancellations, y=avg_price_per_room)) +
+  geom_point(shape=1,size=1.5, colour="#D17A00", stroke = 0.4) +
+  geom_smooth(method = "lm") + 
+  xlab("no_of_previous_cancellations") + 
+  ylab("avg_price_per_room") +
+  ggtitle("Scatter Plot of Number of Previous Cancellations vs Average Room Price") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+```{r}
+ggplot(data, aes(x=no_of_previous_bookings_not_canceled, y=avg_price_per_room)) +
+  geom_point(shape=1,size=1.5, colour="#D17A00", stroke = 0.5) +
+  geom_smooth(method = "lm") + 
+  xlab("no_of_previous_bookings_not_canceled") + 
+  ylab("avg_price_per_room") +
+  ggtitle("Scatter Plot of Number of not Cancelled Previous Bookings vs Average Room Price") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+```{r}
+ggplot(data, aes(x=no_of_special_requests, y=avg_price_per_room)) +
+  geom_point(shape=1,size=1.5, colour="#D17A00", stroke = 0.4) +
+  geom_smooth(method = "lm") + 
+  xlab("no_of_special_requests") + 
+  ylab("avg_price_per_room") +
+  ggtitle("Scatter Plot of Number of Special Requests vs Average Room Price") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+```{r}
+str(data)
+```
+
+```{r}
+cor_matrix <- cor(data[sapply(data, is.numeric)], use = "complete.obs", method = "spearman")
+cor_matrix
+
+cor_melted <- melt(cor_matrix)
+
+ggplot(cor_melted, aes(Var1, Var2, fill = value)) +
+  geom_tile(color = "white") +
+  scale_fill_gradient2(low = "blue", high = "red", mid = "white", name = "Correlation") +
+  geom_text(aes(label = sprintf("%.2f", value)), size=3) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+## Numerical Variables
+
+```{r}
+numeric_variables_test_results <- data.frame(variable = character(), cor.test.coefficient = numeric(), cor.test.p.value = numeric(), lm.adj.r.sqrd = numeric(), lm.p.value = numeric(), stringsAsFactors = FALSE)
+str(numeric_variables_test_results)
+```
+
+## no_of_adults
+
+```{r}
+cor.test.res <- cor.test(data$avg_price_per_room, data$no_of_adults, method="spearman")
+cor.test.res
+```
+
+```{r}
+lm_summary <- summary(lm(data$avg_price_per_room~data$no_of_adults))
+lm_summary
+```
+
+```{r}
+numeric_variables_test_results <- rbind(numeric_variables_test_results, data.frame(
+  variable = "no_of_adults",
+  cor.test.coefficient = cor.test.res$estimate,
+  cor.test.p.value = cor.test.res$p.value,
+  lm.adj.r.sqrd = lm_summary$adj.r.squared,
+  lm.p.value = lm_summary$coefficients["data$no_of_adults", 4]
+))
+```
+
+## no_of_children
+
+```{r}
+cor.test.res <- cor.test(data$avg_price_per_room, data$no_of_children, method="spearman")
+cor.test.res
+```
+
+```{r}
+lm_summary <- summary(lm(data$avg_price_per_room~data$no_of_children))
+lm_summary
+```
+
+```{r}
+numeric_variables_test_results <- rbind(numeric_variables_test_results, data.frame(
+  variable = "no_of_children",
+  cor.test.coefficient = cor.test.res$estimate,
+  cor.test.p.value = cor.test.res$p.value,
+  lm.adj.r.sqrd = lm_summary$adj.r.squared,
+  lm.p.value = lm_summary$coefficients["data$no_of_children", 4]
+))
+```
+
+## no_of_weekend_nights
+
+```{r}
+cor.test.res <- cor.test(data$avg_price_per_room, data$no_of_weekend_nights, method="spearman")
+cor.test.res
+```
+
+```{r}
+lm_summary <- summary(lm(data$avg_price_per_room~data$no_of_weekend_nights))
+lm_summary
+```
+
+```{r}
+numeric_variables_test_results <- rbind(numeric_variables_test_results, data.frame(
+  variable = "no_of_weekend_nights",
+  cor.test.coefficient = cor.test.res$estimate,
+  cor.test.p.value = cor.test.res$p.value,
+  lm.adj.r.sqrd = lm_summary$adj.r.squared,
+  lm.p.value = lm_summary$coefficients["data$no_of_weekend_nights", 4]
+))
+```
+
+## no_of_week_nights
+
+```{r}
+cor.test.res <- cor.test(data$avg_price_per_room, data$no_of_week_nights, method="spearman")
+cor.test.res
+```
+
+```{r}
+lm_summary <- summary(lm(data$avg_price_per_room~data$no_of_week_nights))
+lm_summary
+```
+
+```{r}
+numeric_variables_test_results <- rbind(numeric_variables_test_results, data.frame(
+  variable = "no_of_week_nights",
+  cor.test.coefficient = cor.test.res$estimate,
+  cor.test.p.value = cor.test.res$p.value,
+  lm.adj.r.sqrd = lm_summary$adj.r.squared,
+  lm.p.value = lm_summary$coefficients["data$no_of_week_nights", 4]
+))
+```
+
+## lead_time
+
+```{r}
+cor.test.res <- cor.test(data$avg_price_per_room, data$lead_time, method="spearman")
+cor.test.res
+```
+
+```{r}
+lm_summary <- summary(lm(data$avg_price_per_room~data$lead_time))
+lm_summary
+```
+
+```{r}
+numeric_variables_test_results <- rbind(numeric_variables_test_results, data.frame(
+  variable = "lead_time",
+  cor.test.coefficient = cor.test.res$estimate,
+  cor.test.p.value = cor.test.res$p.value,
+  lm.adj.r.sqrd = lm_summary$adj.r.squared,
+  lm.p.value = lm_summary$coefficients["data$lead_time", 4]
+))
+```
+
+## arrival_month
+
+```{r}
+cor.test.res <- cor.test(data$avg_price_per_room, data$arrival_month, method="spearman")
+cor.test.res
+```
+
+```{r}
+lm_summary <- summary(lm(data$avg_price_per_room~data$arrival_month))
+lm_summary
+```
+
+```{r}
+numeric_variables_test_results <- rbind(numeric_variables_test_results, data.frame(
+  variable = "arrival_month",
+  cor.test.coefficient = cor.test.res$estimate,
+  cor.test.p.value = cor.test.res$p.value,
+  lm.adj.r.sqrd = lm_summary$adj.r.squared,
+  lm.p.value = lm_summary$coefficients["data$arrival_month", 4]
+))
+```
+
+## arrival_date
+
+```{r}
+cor.test.res <- cor.test(data$avg_price_per_room, data$arrival_date, method="spearman")
+cor.test.res
+```
+Above 0.05, therefore there is no evidence to reject the null hypothesis that there is no relationship between the variables.
+
+```{r}
+lm_summary <- summary(lm(data$avg_price_per_room~data$arrival_date))
+lm_summary
+```
+
+```{r}
+numeric_variables_test_results <- rbind(numeric_variables_test_results, data.frame(
+  variable = "arrival_date",
+  cor.test.coefficient = cor.test.res$estimate,
+  cor.test.p.value = cor.test.res$p.value,
+  lm.adj.r.sqrd = lm_summary$adj.r.squared,
+  lm.p.value = lm_summary$coefficients["data$arrival_date", 4]
+))
+```
+
+## no_of_previous_cancellations
+
+```{r}
+cor.test.res <- cor.test(data$avg_price_per_room, data$no_of_previous_cancellations, method="spearman")
+cor.test.res
+```
+
+```{r}
+lm_summary <- summary(lm(data$avg_price_per_room~data$no_of_previous_cancellations))
+lm_summary
+```
+
+```{r}
+numeric_variables_test_results <- rbind(numeric_variables_test_results, data.frame(
+  variable = "no_of_previous_cancellations",
+  cor.test.coefficient = cor.test.res$estimate,
+  cor.test.p.value = cor.test.res$p.value,
+  lm.adj.r.sqrd = lm_summary$adj.r.squared,
+  lm.p.value = lm_summary$coefficients["data$no_of_previous_cancellations", 4]
+))
+```
+
+## no_of_previous_bookings_not_canceled
+
+```{r}
+cor.test.res <- cor.test(data$avg_price_per_room, data$no_of_previous_bookings_not_canceled, method="spearman")
+cor.test.res
+```
+
+```{r}
+lm_summary <- summary(lm(data$avg_price_per_room~data$no_of_previous_bookings_not_canceled))
+lm_summary
+```
+
+```{r}
+numeric_variables_test_results <- rbind(numeric_variables_test_results, data.frame(
+  variable = "no_of_previous_bookings_not_canceled",
+  cor.test.coefficient = cor.test.res$estimate,
+  cor.test.p.value = cor.test.res$p.value,
+  lm.adj.r.sqrd = lm_summary$adj.r.squared,
+  lm.p.value = lm_summary$coefficients["data$no_of_previous_bookings_not_canceled", 4]
+))
+```
+
+## no_of_special_requests
+
+```{r}
+cor.test.res <- cor.test(data$avg_price_per_room, data$no_of_special_requests, method="spearman")
+cor.test.res
+```
+
+```{r}
+lm_summary <- summary(lm(data$avg_price_per_room~data$no_of_special_requests))
+lm_summary
+```
+
+```{r}
+numeric_variables_test_results <- rbind(numeric_variables_test_results, data.frame(
+  variable = "no_of_special_requests",
+  cor.test.coefficient = cor.test.res$estimate,
+  cor.test.p.value = cor.test.res$p.value,
+  lm.adj.r.sqrd = lm_summary$adj.r.squared,
+  lm.p.value = lm_summary$coefficients["data$no_of_special_requests", 4]
+))
+```
+
+## Evaluating Numeric Variables
+
+```{r}
+numeric_variables_test_results$cor.test.coefficient <- as.numeric(numeric_variables_test_results$cor.test.coefficient)
+numeric_variables_test_results$cor.test.p.value <- as.numeric(numeric_variables_test_results$cor.test.p.value)
+numeric_variables_test_results$lm.adj.r.sqrd <- as.numeric(numeric_variables_test_results$lm.adj.r.sqrd)
+numeric_variables_test_results$lm.p.value <- as.numeric(numeric_variables_test_results$lm.p.value)
+
+numeric_variables_test_results$cor.test.coefficient <- sprintf("%.4f", numeric_variables_test_results$cor.test.coefficient)
+numeric_variables_test_results$cor.test.p.value <- sprintf("%.4f", numeric_variables_test_results$cor.test.p.value)
+numeric_variables_test_results$lm.adj.r.sqrd <- sprintf("%.4f", numeric_variables_test_results$lm.adj.r.sqrd)
+numeric_variables_test_results$lm.p.value <- sprintf("%.4f", numeric_variables_test_results$lm.p.value)
+
+numeric_variables_test_results
+```
+
+## Categorical Variables
+
+```{r}
+names(data[sapply(data, function(x) !is.numeric(x))])
+```
+
+```{r}
+categorical_variables_test_results <- data.frame(variable = character(), aov.adj.r.sqrd = numeric(), aov.p.value = numeric(), stringsAsFactors = FALSE)
+```
+
+## type_of_meal_plan
+
+```{r}
+kruskal_result <- kruskal.test(avg_price_per_room ~ type_of_meal_plan, data = data)
+
+# Print the results
+print(kruskal_result)
+```
+
+
+```{r}
+type_of_meal_plan_anova_model <- aov(data$avg_price_per_room~data$type_of_meal_plan)
+summary <- summary(type_of_meal_plan_anova_model)
+summary_lm <- summary.lm(type_of_meal_plan_anova_model)
+summary_lm
+```
+
+
+```{r}
+categorical_variables_test_results <- rbind(categorical_variables_test_results, data.frame(
+  variable = "type_of_meal_plan",
+  aov.adj.r.sqrd = summary_lm$adj.r.squared,
+  aov.p.value = summary[[1]][["Pr(>F)"]][1]
+))
+```
+
+## required_car_parking_space
+
+```{r}
+kruskal_result <- kruskal.test(avg_price_per_room ~ required_car_parking_space, data = data)
+
+# Print the results
+print(kruskal_result)
+```
+
+```{r}
+required_car_parking_space_anova_model <- aov(data$avg_price_per_room~data$required_car_parking_space)
+summary <- summary(required_car_parking_space_anova_model)
+summary_lm <- summary.lm(required_car_parking_space_anova_model)
+summary_lm
+```
+
+
+```{r}
+categorical_variables_test_results <- rbind(categorical_variables_test_results, data.frame(
+  variable = "required_car_parking_space",
+  aov.adj.r.sqrd = summary_lm$adj.r.squared,
+  aov.p.value = summary[[1]][["Pr(>F)"]][1]
+))
+```
+
+## room_type_reserved
+
+```{r}
+kruskal_result <- kruskal.test(avg_price_per_room ~ room_type_reserved, data = data)
+
+# Print the results
+print(kruskal_result)
+```
+
+
+```{r}
+room_type_reserved_anova_model <- aov(data$avg_price_per_room~data$room_type_reserved)
+summary <- summary(room_type_reserved_anova_model)
+summary_lm <- summary.lm(room_type_reserved_anova_model)
+summary_lm
+```
+
+```{r}
+categorical_variables_test_results <- rbind(categorical_variables_test_results, data.frame(
+  variable = "room_type_reserved",
+  aov.adj.r.sqrd = summary_lm$adj.r.squared,
+  aov.p.value = summary[[1]][["Pr(>F)"]][1]
+))
+```
+
+## market_segment_type
+
+```{r}
+kruskal_result <- kruskal.test(avg_price_per_room ~ market_segment_type, data = data)
+
+# Print the results
+print(kruskal_result)
+```
+
+
+```{r}
+market_segment_type_anova_model <- aov(data$avg_price_per_room~data$market_segment_type)
+summary <- summary(market_segment_type_anova_model)
+summary_lm <- summary.lm(market_segment_type_anova_model)
+summary_lm
+```
+
+```{r}
+categorical_variables_test_results <- rbind(categorical_variables_test_results, data.frame(
+  variable = "market_segment_type",
+  aov.adj.r.sqrd = summary_lm$adj.r.squared,
+  aov.p.value = summary[[1]][["Pr(>F)"]][1]
+))
+```
+
+## repeated_guest
+
+```{r}
+repeated_guest_anova_model <- aov(data$avg_price_per_room~data$repeated_guest)
+summary <- summary(repeated_guest_anova_model)
+summary_lm <- summary.lm(repeated_guest_anova_model)
+summary_lm
+```
+
+```{r}
+categorical_variables_test_results <- rbind(categorical_variables_test_results, data.frame(
+  variable = "repeated_guest",
+  aov.adj.r.sqrd = summary_lm$adj.r.squared,
+  aov.p.value = summary[[1]][["Pr(>F)"]][1]
+))
+```
+
+## booking_status
+
+```{r}
+booking_status_anova_model <- aov(data$avg_price_per_room~data$booking_status)
+summary <- summary(booking_status_anova_model)
+summary_lm <- summary.lm(booking_status_anova_model)
+summary_lm
+```
+
+```{r}
+categorical_variables_test_results <- rbind(categorical_variables_test_results, data.frame(
+  variable = "booking_status",
+  aov.adj.r.sqrd = summary_lm$adj.r.squared,
+  aov.p.value = summary[[1]][["Pr(>F)"]][1]
+))
+```
+
+## arrival_year
+
+```{r}
+arrival_year_anova_model <- aov(data$avg_price_per_room~data$arrival_year)
+summary <- summary(arrival_year_anova_model)
+summary_lm <- summary.lm(arrival_year_anova_model)
+summary_lm
+```
+        
+        
+```{r}
+wilcox.test.res <- wilcox.test(data$avg_price_per_room~data$arrival_year)
+wilcox.test.res
+```
+
+        
+        
+```{r}
+categorical_variables_test_results <- rbind(categorical_variables_test_results, data.frame(
+  variable = "arrival_year",
+  aov.adj.r.sqrd = summary_lm$adj.r.squared,
+  aov.p.value = summary[[1]][["Pr(>F)"]][1]
+))
+```
+
+
+## Evaluating Categorical Variables
+
+```{r}
+categorical_variables_test_results$aov.adj.r.sqrd <- as.numeric(categorical_variables_test_results$aov.adj.r.sqrd)
+categorical_variables_test_results$aov.p.value <- as.numeric(categorical_variables_test_results$aov.p.value)
+
+categorical_variables_test_results$aov.adj.r.sqrd <- sprintf("%.4f", categorical_variables_test_results$aov.adj.r.sqrd)
+categorical_variables_test_results$aov.p.value <- sprintf("%.4f", categorical_variables_test_results$aov.p.value)
+
+categorical_variables_test_results
+```
+
+## Logical Variables
+
+```{r}
+names(data[sapply(data, is.logical)])
+```
+
+```{r}
+logical_variables_test_results <- data.frame(variable = character(), log.model.aic = numeric(), t.test.p.value = numeric(), wolcox.test.p.value = numeric(), stringsAsFactors = FALSE)
+```
+
+## required_car_parking_space
+
+```{r}
+required_car_parking_space_log_reg_model <- glm(data$required_car_parking_space~data$avg_price_per_room, family = "binomial")
+summary(required_car_parking_space_log_reg_model)
+```
+
+```{r}
+t.test.res <- t.test(data$avg_price_per_room~data$required_car_parking_space)
+t.test.res
+```
+
+```{r}
+wilcox.test.res <- wilcox.test(data$avg_price_per_room~data$required_car_parking_space)
+wilcox.test.res
+```
+
+```{r}
+logical_variables_test_results <- rbind(logical_variables_test_results, data.frame(
+  variable = "required_car_parking_space",
+  log.model.aic = AIC(required_car_parking_space_log_reg_model),
+  t.test.p.value = t.test.res$p.value,
+  wolcox.test.p.value = wilcox.test.res$p.value
+))
+```
+
+## repeated_guest
+
+```{r}
+repeated_guest_log_reg_model <- glm(data$repeated_guest~data$avg_price_per_room, family = "binomial")
+summary(repeated_guest_log_reg_model)
+```
+
+```{r}
+t.test.res <- t.test(data$avg_price_per_room~data$repeated_guest)
+t.test.res
+```
+
+```{r}
+wilcox.test.res <- wilcox.test(data$avg_price_per_room~data$repeated_guest)
+wilcox.test.res
+```
+
+```{r}
+logical_variables_test_results <- rbind(logical_variables_test_results, data.frame(
+  variable = "repeated_guest",
+  log.model.aic = AIC(repeated_guest_log_reg_model),
+  t.test.p.value = t.test.res$p.value,
+  wolcox.test.p.value = wilcox.test.res$p.value
+))
+```
+
+## booking_status
+
+```{r}
+booking_status_log_reg_model <- glm(data$booking_status~data$avg_price_per_room, family = "binomial")
+summary(booking_status_log_reg_model)
+```
+
+```{r}
+t.test.res <- t.test(data$avg_price_per_room~data$booking_status)
+t.test.res
+```
+
+```{r}
+wilcox.test.res <- wilcox.test(data$avg_price_per_room~data$booking_status)
+wilcox.test.res
+```
+
+
+```{r}
+logical_variables_test_results <- rbind(logical_variables_test_results, data.frame(
+  variable = "booking_status",
+  log.model.aic = AIC(booking_status_log_reg_model),
+  t.test.p.value = t.test.res$p.value,
+  wolcox.test.p.value = wilcox.test.res$p.value
+))
+```
+
+## Evaluating Logical Variables
+
+```{r}
+logical_variables_test_results$log.model.aic <- as.numeric(logical_variables_test_results$log.model.aic)
+logical_variables_test_results$t.test.p.value <- as.numeric(logical_variables_test_results$t.test.p.value)
+logical_variables_test_results$wolcox.test.p.value <- as.numeric(logical_variables_test_results$wolcox.test.p.value)
+
+logical_variables_test_results$log.model.aic <- sprintf("%.4f", logical_variables_test_results$log.model.aic)
+logical_variables_test_results$t.test.p.value <- sprintf("%.4f", logical_variables_test_results$t.test.p.value)
+logical_variables_test_results$wolcox.test.p.value <- sprintf("%.4f", logical_variables_test_results$wolcox.test.p.value)
+
+logical_variables_test_results
+```
+
+```{r}
+# Remove Booking_ID from Dataset
+data <- data[ , !(names(data) %in% c("Booking_ID"))]
+```
+
+```{r}
+str(data)
+```
+
+## PCA
+
+```{r}
+#Turn characters to factors
+data$market_segment_type <- as.factor(data$market_segment_type)
+data$room_type_reserved <- as.factor(data$room_type_reserved)
+
+# Identify categorical variables
+categorical_vars <- sapply(data, is.factor) | sapply(data, is.character)
+
+# One-hot encode categorical variables
+data_encoded <- model.matrix(~ . -1, data = data[, categorical_vars], contrasts.arg = lapply(data[sapply(data, is.factor)], contrasts, contrasts=FALSE))
+
+
+# Convert to data.frame
+data_encoded <- as.data.frame(data_encoded)
+
+
+# Extract numeric variables
+numeric_data <- data[, !categorical_vars]
+
+# Combine numeric and encoded categorical variables
+combined_data <- cbind(numeric_data, data_encoded)
+data_numeric <- combined_data
+
+# Remove Output Variable
+combined_data_no_output = combined_data[, !names(combined_data) %in% "avg_price_per_room"]
+
+# Apply PCA
+pca_result <- prcomp(combined_data_no_output, center = TRUE, scale. = TRUE)
+
+# Save PCA Scores
+write.csv(pca_result$x, file = "pca_scores1.csv")
+
+# View summary of PCA results
+summary(pca_result)
+
+pca_correlation_matrix <- cor(combined_data, pca_result$x)
+
+pca_correlation_matrix_melted_1 = melt(pca_correlation_matrix[1:nrow(pca_correlation_matrix)/2, 1:8])
+pca_correlation_matrix_melted_2 = melt(pca_correlation_matrix[((nrow(pca_correlation_matrix)/2) + 1):nrow(pca_correlation_matrix), 1:8])
+
+ggplot(pca_correlation_matrix_melted_1, aes(Var1, Var2, fill = value)) +
+  geom_tile(color = "white") +
+  scale_fill_gradient2(low = "blue", high = "red", mid = "white", name = "Correlation") +
+  geom_text(aes(label = sprintf("%.2f", value)), size = 3.25) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+ggplot(pca_correlation_matrix_melted_2, aes(Var1, Var2, fill = value)) +
+  geom_tile(color = "white") +
+  scale_fill_gradient2(low = "blue", high = "red", mid = "white", name = "Correlation") +
+  geom_text(aes(label = sprintf("%.2f", value)), size = 3.25) +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1, size = 8))
+```
+
+
+
+
+```{r}
+pca_result_var <- pca_result$sdev^2
+pca_result_PEV <- pca_result_var / sum(pca_result_var)
+
+opar <- par(no.readonly = TRUE)
+plot(
+  cumsum(pca_result_PEV),
+  ylim = c(0,1),
+  xlab = 'PC',
+  ylab = 'cumulative PEV',
+  pch = 20,
+  col = '#0044ff'
+)
+abline(h = 0.8, col = 'red', lty = 'dashed')
+par(opar)
+
+# PCA Biplot
+scores <- as.data.frame(pca_result$x[, 1:2])
+loadings <- as.data.frame(pca_result$rotation[, 1:2])
+loadings$variable <- rownames(loadings)
+
+pca_biplot <- ggplot() +
+  geom_point(data = scores, aes(x = PC1, y = PC2), colour = '#FDBCB4', size = 1.5, shape = 1, stroke = 0.7) +
+  theme_minimal() +
+  theme(panel.background = element_rect(fill = "white", colour = "white"), plot.margin = unit(c(0.5, 0.1, 0.1, 0.05), 
+                                "inches")) +
+  theme(plot.title = element_text(hjust = 0.5, vjust = 7, family = "Arial" )) +
+  labs(title = "PCA Biplot", x = "PC1", y = "PC2") +
+  geom_segment(data = loadings, aes(x = 0, y = 0, xend = PC1 * max(abs(scores$PC1)), yend = PC2 * max(abs(scores$PC2))), 
+                      arrow = arrow(type = "closed", length = unit(0.1, "inches"), angle = 18), color = "#555555", size = 0.5, alpha = 0.65) +
+  geom_text(data = loadings, aes(x = PC1 * max(abs(scores$PC1)), y = PC2 * max(abs(scores$PC2)), label = variable), 
+            position = position_nudge(x = 0.1, y = 0.1), check_overlap = TRUE, hjust = 0, vjust = 0, color = "#1B4B50", size = 3.27) 
+
+ggsave("PC1_and_PC2_Plot1.png", plot = pca_biplot, width = 10, height = 10, dpi = 300, bg="white")
+dev.off()
+print(pca_biplot)
+```
+
+
+## Clustering
+
+```{r}
+k_data = kmeans(combined_data_no_output, 12)
+
+k_cluster_id_data <- k_data$cluster
+
+data$cluster <- k_cluster_id_data
+data_numeric$cluster <- k_cluster_id_data
+```
+
+```{r}
+cluster_anova_model <- aov(data$avg_price_per_room ~ factor(data$cluster))
+summary <- summary(cluster_anova_model)
+summary_lm <- summary.lm(cluster_anova_model)
+summary_lm
+```
+
+```{r}
+categorical_variables_test_results <- rbind(categorical_variables_test_results, data.frame(
+  variable = "cluster",
+  aov.adj.r.sqrd = summary_lm$adj.r.squared,
+  aov.p.value = summary[[1]][["Pr(>F)"]][1]
+))
+
+categorical_variables_test_results$aov.adj.r.sqrd <- as.numeric(categorical_variables_test_results$aov.adj.r.sqrd)
+categorical_variables_test_results$aov.p.value <- as.numeric(categorical_variables_test_results$aov.p.value)
+
+categorical_variables_test_results$aov.adj.r.sqrd <- sprintf("%.4f", categorical_variables_test_results$aov.adj.r.sqrd)
+categorical_variables_test_results$aov.p.value <- sprintf("%.4f", categorical_variables_test_results$aov.p.value)
+```
+
+## Saving Data
+
+```{r}
+logical_cols <- sapply(data_numeric, is.logical)
+data_numeric[logical_cols] <- lapply(data_numeric[logical_cols], as.integer)
+```
+
+```{r}
+write.csv(data, file = "post_eda_dataset1.csv", row.names = FALSE)
+```
+
+```{r}
+write.csv(data_numeric, file = "post_eda_numerical_dataset1.csv", row.names = FALSE)
+```
+
+## Comparing Original Variables to PCA Variables
+
+```{r}
+original_data <- read_csv("post_eda_dataset1.csv")
+pca_data <- read_csv("pca_scores1.csv")
+```
+
+```{r}
+# For the original dataset
+y <- original_data$avg_price_per_room
+X_original <- original_data[, !names(original_data) %in% "avg_price_per_room"]
+# X_original <- original_data[, -ncol(original_data)]  # Exclude the last column
+
+# For the PCA dataset (assuming no target variable included)
+X_pca <- pca_data
+```
+
+```{r}
+set.seed(42)  # For reproducibility
+index <- createDataPartition(y, p = .8, list = FALSE)
+X_train_orig <- X_original[index, ]
+X_test_orig <- X_original[-index, ]
+X_train_pca <- X_pca[index, ]
+X_test_pca <- X_pca[-index, ]
+y_train <- y[index]
+y_test <- y[-index]
+```
+
+```{r}
+# Decision Tree on Original Data
+model_dt_orig <- rpart(y_train ~ ., data = as.data.frame(X_train_orig))
+predictions_dt_orig <- predict(model_dt_orig, newdata = as.data.frame(X_test_orig))
+rmse_dt_orig <- rmse(predictions_dt_orig, y_test)
+
+# Decision Tree on PCA Data
+model_dt_pca <- rpart(y_train ~ ., data = as.data.frame(X_train_pca))
+predictions_dt_pca <- predict(model_dt_pca, newdata = as.data.frame(X_test_pca))
+rmse_dt_pca <- rmse(predictions_dt_pca, y_test)
+
+# Output RMSE values
+print(paste("Decision Tree RMSE on Original Data:", rmse_dt_orig))
+print(paste("Decision Tree RMSE on PCA Data:", rmse_dt_pca))
+```
+
+```{r}
+# SVM on Original Data
+model_svm_orig <- svm(y_train ~ ., data = data.frame(X_train_orig, y_train))
+predictions_svm_orig <- predict(model_svm_orig, newdata = X_test_orig)
+rmse_svm_orig <- rmse(y_test, predictions_svm_orig)
+
+# SVM on PCA Data
+model_svm_pca <- svm(y_train ~ ., data = data.frame(X_train_pca, y_train))
+predictions_svm_pca <- predict(model_svm_pca, newdata = X_test_pca)
+rmse_svm_pca <- rmse(y_test, predictions_svm_pca)
+
+# Print RMSE for SVMs
+print(paste("SVM RMSE on Original Data:", rmse_svm_orig))
+print(paste("SVM RMSE on PCA Data:", rmse_svm_pca))
+```
+
+```{r}
+# Assuming X_train_orig, X_test_orig, y_train, and y_test are already defined
+rf_model_orig <- randomForest(x = as.data.frame(X_train_orig), y = y_train)
+predictions_rf_orig <- predict(rf_model_orig, newdata = as.data.frame(X_test_orig))
+rmse_rf_orig <- sqrt(mean((predictions_rf_orig - y_test)^2))
+
+# Assuming X_train_pca, X_test_pca, y_train, and y_test are already defined
+rf_model_pca <- randomForest(x = as.data.frame(X_train_pca), y = y_train)
+predictions_rf_pca <- predict(rf_model_pca, newdata = as.data.frame(X_test_pca))
+rmse_rf_pca <- sqrt(mean((predictions_rf_pca - y_test)^2))
+
+print(paste("Random Forest RMSE on Original Data:", rmse_rf_orig))
+print(paste("Random Forest RMSE on PCA Data:", rmse_rf_pca))
+```
+
+## Getting Loss of Random Forest Models given a Single Var + PC1 + PC2
+
+```{r}
+set.seed(64)
+
+getRandomForestLossForSingleVar <- function(X, y, var_name) {
+  if (var_name == "None") {
+    X <- select(pca_data, "PC1", "PC2")
+  } else {
+    X <- bind_cols(
+      X %>% select(all_of(var_name)),
+      select(pca_data, "PC1", "PC2")
+    )
+  }
+  data_split_index <- createDataPartition(y, p = .8, list = FALSE)
+  
+  X_train <- data.frame(X = X[data_split_index,])
+  X_test <- data.frame(X = X[-data_split_index,])
+  y_train <- y[data_split_index]
+  y_test <- y[-data_split_index]
+  
+  model <- randomForest(x = X_train, y = y_train)
+  
+  predictions <- predict(model, newdata = X_test)
+  test_rmse <- sqrt(mean((predictions - y_test)^2))
+  return(test_rmse)
+}
+
+data_no_target <- data[, !names(data) %in% "avg_price_per_room"]
+random_forest_loss_for_variables <- data.frame(Variable = character(), Loss = numeric(), stringsAsFactors = FALSE)
+
+test_rmse <- getRandomForestLossForSingleVar(data, data$avg_price_per_room, "None")
+random_forest_loss_for_variables <- rbind(random_forest_loss_for_variables, data.frame(Variable = "None", Loss = test_rmse))
+
+for(column_name in colnames(data_no_target)) {
+  test_rmse <- getRandomForestLossForSingleVar(data, data$avg_price_per_room, column_name)
+  random_forest_loss_for_variables <- rbind(random_forest_loss_for_variables, data.frame(Variable = column_name, Loss = test_rmse))
+  cat("Built Model for ", grep(column_name, colnames(data_no_target)), " out of ", length(colnames(data_no_target)), "Variables\n")
+}
+
+random_forest_loss_for_variables <- random_forest_loss_for_variables %>% arrange(Loss)
+random_forest_loss_for_variables
+```
+
+## Reviewing Variables Test Results
+
+```{r}
+numeric_variables_test_results
+categorical_variables_test_results
+logical_variables_test_results
+```
+

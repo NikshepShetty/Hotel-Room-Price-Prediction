@@ -1,0 +1,454 @@
+
+# Read Dataset.csv
+
+```{r}
+library(ggplot2)
+library(mice)
+library(Hmisc)
+library(validate)
+```
+
+```{r}
+data <- read.csv(file = "Hotel Reservations.csv", header = TRUE, sep = ",", stringsAsFactors = FALSE)
+```
+
+# Data Uncleaning
+```{r}
+set.seed(123) # Ensure reproducibility
+
+# Iterate over all columns in the dataset
+for (column_name in c("no_of_adults", "arrival_month", "type_of_meal_plan", "required_car_parking_space", "avg_price_per_room")) {
+  # Determine a random number of NAs to add between 1 and 5 for each column
+  num_nas <- sample(25:75, 1)
+  
+  # Randomly choose unique row indices for NA insertion
+  na_indices <- sample(x = 1:nrow(data), size = num_nas)
+  
+  # Assign NA to the randomly chosen indices for the current column
+  data[na_indices, column_name] <- NA
+}
+```
+
+
+```{r}
+data$no_of_adults[5] <- -1
+data$no_of_adults[2000] <- -1
+```
+
+
+```{r}
+data$arrival_month[3901] <- 13
+data$arrival_month[134] <- 13
+```
+
+
+```{r}
+data$type_of_meal_plan[3901] <- "NotSelected"
+```
+
+
+```{r}
+data$required_car_parking_space[24091] <- 2
+```
+
+
+```{r}
+data$avg_price_per_room[19031] <- -1
+```
+
+
+# Get Dataset Summary
+```{r}
+summary(data)
+```
+
+# Get Data Structure
+```{r}
+str(data)
+```
+
+```{r}
+# Define the validation rules
+data.rules <- validator(
+  no_of_adults_is_na = !is.na(no_of_adults),
+  arrival_month_is_na = !is.na(arrival_month),
+  type_of_meal_plan_is_na = !is.na(type_of_meal_plan),
+  required_car_parking_space_is_na = !is.na(required_car_parking_space),
+  avg_price_per_room_is_na = !is.na(avg_price_per_room),
+  no_of_adults = no_of_adults >= 0,
+  arrival_month = arrival_month <= 12 & arrival_month >= 1,
+  arrival_date = arrival_date <= 31 & arrival_date >=1,
+  type_of_meal_plan = is.element(type_of_meal_plan, c("Meal Plan 1", "Meal Plan 2", "Meal Plan 3", "Not Selected")),
+  required_car_parking_space = required_car_parking_space == 0 | required_car_parking_space == 1,
+  avg_price_per_room = avg_price_per_room >= 0,
+  no_of_children_is_na = !is.na(no_of_children),
+  no_of_weekend_nights = no_of_weekend_nights >= 0,
+  no_of_week_nights = no_of_week_nights >= 0,
+  room_type_reserved_is_na = !is.na(room_type_reserved),
+  lead_time_is_na = !is.na(lead_time),
+  arrival_year_is_na = !is.na(arrival_year),
+  arrival_date_is_na = !is.na(arrival_date),
+  market_segment_type_is_na = !is.na(market_segment_type),
+  repeated_guest_is_na = !is.na(repeated_guest),
+  no_of_previous_cancellations = no_of_previous_cancellations >= 0,
+  no_of_previous_bookings_not_canceled = no_of_previous_bookings_not_canceled >= 0,
+  no_of_special_requests = no_of_special_requests >= 0,
+  booking_status_is_na = !is.na(booking_status),
+  booking_status = is.element(booking_status, c("Canceled", "Not_Canceled"))
+)
+
+# Now you can apply the rules to the data
+validation_results <- confront(data, data.rules)
+summary(validation_results)
+plot(validation_results)
+```
+
+# Check NAs
+
+```{r}
+colSums(is.na(data))
+```
+
+
+
+```{r}
+table(data$type_of_meal_plan)
+```
+
+```{r}
+data$type_of_meal_plan[data$type_of_meal_plan == "NotSelected"] <- "Not Selected"
+```
+
+```{r}
+table(data$type_of_meal_plan)
+```
+
+```{r}
+table(data$market_segment_type)
+```
+
+```{r}
+table(data$booking_status)
+```
+
+```{r}
+table(data$required_car_parking_space)
+```
+
+```{r}
+table(data$repeated_guest)
+```
+
+```{r}
+table(data$room_type_reserved)
+```
+
+NOTE: WE SAW -1 IN SUMMARY
+
+```{r}
+data$no_of_adults[data$no_of_adults < 0] <- NA
+data$arrival_month[data$arrival_month > 12] <- NA
+data$required_car_parking_space[data$required_car_parking_space > 1] <- NA
+data$avg_price_per_room[data$avg_price_per_room < 0] <- NA
+```
+
+# Cleaning NAs
+```{r}
+data <- mice(data, m=1, method='pmm')  # m=1 for a single complete dataset
+data <- complete(data)
+```
+
+```{r}
+data$type_of_meal_plan <- as.factor(data$type_of_meal_plan)
+data <- mice(data, m=1, method='pmm')  # m=1 for a single complete dataset
+data <- complete(data)
+```
+
+```{r}
+table(data$type_of_meal_plan)
+```
+
+```{r}
+table(data$required_car_parking_space)
+```
+
+```{r}
+colSums(is.na(data))
+```
+
+# Categorical to Factors/Logicals
+```{r}
+data$market_segment_type <- as.factor(data$market_segment_type)
+data$room_type_reserved <- as.factor(data$room_type_reserved)
+data$arrival_year <- as.factor(data$arrival_year)
+
+data$booking_status <- ifelse(data$booking_status == 'Not_Canceled', TRUE, FALSE)
+
+data$required_car_parking_space <- as.logical(data$required_car_parking_space)
+
+data$repeated_guest <- as.logical(data$repeated_guest)
+```
+
+
+```{r}
+str(data)
+```
+
+```{r}
+table(data$market_segment_type)
+```
+
+```{r}
+table(data$repeated_guest)
+```
+
+```{r}
+table(data$room_type_reserved)
+```
+
+```{r}
+table(data$arrival_year)
+```
+
+
+```{r}
+table(data$booking_status)
+```
+
+```{r}
+table(data$required_car_parking_space)
+```
+
+```{r}
+table(data$repeated_guest)
+```
+
+```{r}
+boxplot_data <- list(data$no_of_adults,data$no_of_children)
+
+boxplot(boxplot_data, 
+        names = c("Number of Adults", "Number of Children"), 
+        main = "Boxplot of Number of Adults vs Children",
+        ylab = "Count", 
+        col = c("lightblue", "pink"), 
+        border = "black")
+
+```
+
+
+```{r}
+subset(data, no_of_adults == 0 & no_of_children == 0)
+```
+
+```{r}
+data <- subset(data, !(no_of_adults == 0 & no_of_children == 0))
+```
+
+```{r}
+subset(data, no_of_adults == 0 & no_of_children == 0)
+```
+
+
+```{r}
+boxplot_data2 <- list(data$no_of_week_nights,data$no_of_weekend_nights)
+
+boxplot(boxplot_data2, 
+        names = c("Number of Week Nights", "Number of Weekend Nights"), 
+        main = "Boxplot of Number of Week vs Weekend Nights",
+        ylab = "Count", 
+        col = c("lightblue", "pink"), 
+        border = "black")
+
+```
+
+
+```{r}
+subset(data, no_of_week_nights == 0 & no_of_weekend_nights == 0)
+```
+
+```{r}
+data <- subset(data, !(no_of_week_nights == 0 & no_of_weekend_nights == 0))
+```
+
+```{r}
+subset(data, no_of_week_nights == 0 & no_of_weekend_nights == 0)
+```
+
+
+```{r}
+table(data$type_of_meal_plan)
+```
+
+```{r}
+ggplot(data, aes(x=type_of_meal_plan, y=avg_price_per_room, fill=type_of_meal_plan)) + 
+  geom_boxplot(notch = TRUE, outlier.shape = 21, outlier.alpha = 0.7, outlier.stroke = 0.5) +
+  labs(title = "Boxplot of Meal Plan Types") +
+  theme(legend.position = "none", plot.title = element_text(hjust = 0.5))
+```
+
+```{r}
+ggplot(data, aes(x=required_car_parking_space, y=avg_price_per_room, fill=required_car_parking_space)) + 
+  geom_boxplot(notch = TRUE, outlier.shape = 21, outlier.alpha = 0.7, outlier.stroke = 0.5) +
+  labs(title = "Boxplot of Required Car Parking Space") +
+  theme(legend.position = "none", plot.title = element_text(hjust = 0.5))
+```
+
+```{r}
+ggplot(data, aes(x=room_type_reserved, y=avg_price_per_room, fill=room_type_reserved)) + 
+  geom_boxplot(notch=FALSE, outlier.shape = 21, outlier.alpha = 0.7, outlier.stroke = 0.5) +
+  labs(title = "Boxplot of Room Types") +
+  theme(legend.position = "none", plot.title = element_text(hjust = 0.5))
+```
+
+```{r}
+ggplot(data, aes(y=lead_time)) + 
+  geom_boxplot(notch = TRUE, fill="grey") +
+  labs(title = "Boxplot of Lead Time") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+```{r}
+ggplot(data, aes(x=arrival_year, y=avg_price_per_room, fill=arrival_year)) + 
+  geom_boxplot(notch = TRUE, outlier.shape = 21, outlier.alpha = 0.7, outlier.stroke = 0.5) +
+  labs(title = "Boxplot of Arrival Year") +
+  theme(legend.position = "none", plot.title = element_text(hjust = 0.5))
+```
+
+```{r}
+ggplot(data, aes(y=arrival_month)) + 
+  geom_boxplot(notch = TRUE, fill="grey") +
+  labs(title = "Boxplot of Arrival_month") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+```{r}
+ggplot(data, aes(y=arrival_date)) + 
+  geom_boxplot(notch = TRUE, fill="grey") +
+  labs(title = "Boxplot of Arrival Date") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+
+
+```{r}
+subset(data, (arrival_year == 2018 & arrival_month == 2 & arrival_date ==29))
+```
+
+```{r}
+data<-subset(data, !(arrival_year == 2018 & arrival_month == 2 & arrival_date ==29))
+```
+
+```{r}
+subset(data, (arrival_year == 2018 & arrival_month == 2 & arrival_date ==29))
+```
+
+
+```{r}
+ggplot(data, aes(x=repeated_guest, y=avg_price_per_room, fill=repeated_guest )) + 
+  geom_boxplot(notch = TRUE, outlier.shape = 21, outlier.alpha = 0.7, outlier.stroke = 0.5)+
+  labs(title = "Boxplot of Repeated Guest") +
+  theme(legend.position = "none", plot.title = element_text(hjust = 0.5))
+```
+
+```{r}
+ggplot(data, aes(y=no_of_previous_cancellations)) + 
+  geom_boxplot(notch = TRUE) +
+  labs(title = "Boxplot of Number of Previous Bookings Cancellations") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+```{r}
+ggplot(data, aes(y=no_of_previous_bookings_not_canceled)) + 
+  geom_boxplot(notch = TRUE, fill="grey") +
+  labs(title = "Boxplot of Number of Previous Bookings not Cancelled") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+```{r}
+ggplot(data, aes(y=avg_price_per_room)) + 
+  geom_boxplot(notch = TRUE, fill="grey") +
+  labs(title = "Boxplot of Average Price per Room") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+```{r}
+ggplot(data, aes(y=no_of_special_requests)) + 
+  geom_boxplot(notch = TRUE, fill="grey") +
+  labs(title = "Boxplot of Number of Special Requests") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+```{r}
+ggplot(data, aes(x=booking_status, y=avg_price_per_room, fill=booking_status)) + 
+  geom_boxplot(notch = TRUE, outlier.shape = 21, outlier.alpha = 0.7, outlier.stroke = 0.5) +
+  labs(title = "Boxplot of Booking Status") +
+  theme(legend.position = "none", plot.title = element_text(hjust = 0.5))
+```
+
+```{r}
+ggplot(data, aes(x=market_segment_type, y=avg_price_per_room, fill=market_segment_type)) + 
+  geom_boxplot(notch = TRUE, outlier.shape = 21, outlier.alpha = 0.7, outlier.stroke = 0.5) +
+  labs(title = "Boxplot of Value by Market Segment Type",
+       x = "Market Segment Type",
+       y = "avg_price_per_room") +
+  theme(legend.position = "none", plot.title = element_text(hjust = 0.5))
+```
+
+```{r}
+subset(data, avg_price_per_room <= 0)
+```
+
+```{r}
+# Define the validation rules
+data.rules <- validator(
+  no_of_adults_is_na = !is.na(no_of_adults),
+  arrival_month_is_na = !is.na(arrival_month),
+  type_of_meal_plan_is_na = !is.na(type_of_meal_plan),
+  required_car_parking_space_is_na = !is.na(required_car_parking_space),
+  avg_price_per_room_is_na = !is.na(avg_price_per_room),
+  no_of_adults = no_of_adults >= 0,
+  arrival_month = arrival_month <= 12 & arrival_month >= 1,
+  arrival_date = arrival_date <= 31 & arrival_date >=1,
+  type_of_meal_plan = is.element(type_of_meal_plan, c("Meal Plan 1", "Meal Plan 2", "Meal Plan 3", "Not Selected")),
+  required_car_parking_space = required_car_parking_space == 0 | required_car_parking_space == 1,
+  avg_price_per_room = avg_price_per_room >= 0,
+  no_of_children_is_na = !is.na(no_of_children),
+  no_of_weekend_nights = no_of_weekend_nights >= 0,
+  no_of_week_nights = no_of_week_nights >= 0,
+  room_type_reserved_is_na = !is.na(room_type_reserved),
+  lead_time_is_na = !is.na(lead_time),
+  arrival_year_is_na = !is.na(arrival_year),
+  arrival_date_is_na = !is.na(arrival_date),
+  market_segment_type_is_na = !is.na(market_segment_type),
+  repeated_guest_is_na = !is.na(repeated_guest),
+  no_of_previous_cancellations = no_of_previous_cancellations >= 0,
+  no_of_previous_bookings_not_canceled = no_of_previous_bookings_not_canceled >= 0,
+  no_of_special_requests = no_of_special_requests >= 0,
+  booking_status_is_na = !is.na(booking_status),
+  booking_status = is.element(booking_status, c(TRUE, FALSE))
+)
+
+# Now you can apply the rules to the data
+validation_results <- confront(data, data.rules)
+summary(validation_results)
+plot(validation_results)
+```
+
+```{r}
+write.csv(data, file = "cleaned_dataset1.csv", row.names = FALSE)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
