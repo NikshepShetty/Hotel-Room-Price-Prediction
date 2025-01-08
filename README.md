@@ -7,13 +7,13 @@ Data Source: [Kaggle Hotel Reservations Dataset](https://www.kaggle.com/datasets
 
 ## Project Structure
 ```
-├── Data_Cleaning.Rmd       # Data cleaning and preparation
-├── EDA.Rmd                # Exploratory Data Analysis
-├── DLModel2328066.ipynb   # Deep Learning model implementation
-├── cleaned_dataset1.csv    # Output from data cleaning
-├── post_eda_dataset1.csv   # Dataset after EDA
-├── post_eda_numerical_dataset1.csv  # Processed numerical data
-└── README.md
+├── Data_Cleaning.Rmd         # Data cleaning and preparation
+├── EDA.Rmd                  # Exploratory Data Analysis
+├── MLModel2328066.Rmd       # Machine Learning implementation in R
+├── DLModel2328066.ipynb     # Deep Learning model implementation in Python
+├── cleaned_dataset1.csv     # Output from data cleaning
+├── post_eda_dataset1.csv    # Dataset after EDA
+└── post_eda_numerical_dataset1.csv  # Processed numerical data
 ```
 
 ## Methodology
@@ -24,19 +24,21 @@ Data Source: [Kaggle Hotel Reservations Dataset](https://www.kaggle.com/datasets
 
 2. **Exploratory Data Analysis (EDA)**
    - Analyzed patterns in booking data
+   - Explored dimensionality reduction techniques including PCA
    - Identified key price influencing factors
    - Visualized relationships between variables
-   - Principal Component Analysis(PDA)
 
 3. **Model Development**
-   - Implemented machine learning and deep learning models
-   - Evaluated model performance
-   - Fine-tuned for optimal predictions
+   - Random Forest Model (R)
+     - Feature importance analysis
+     - Price prediction
+   - Neural Network Model (Python)
+     - Deep learning architecture
+     - Model optimization
 
 ## Dependencies
-- R (for Data Cleaning and EDA)
+- R
 - Python
-- Keras
 
 ## Grade Achieved
 A+ (Master's Coursework)
