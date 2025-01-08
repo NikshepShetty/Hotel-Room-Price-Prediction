@@ -1,0 +1,94 @@
+---
+title: "MLmodel2328066"
+author: '2328066'
+date: "2024-03-30"
+output: html_document
+---
+
+
+
+```{r}
+# Import necessary libraries
+
+library(randomForest)
+library(caret)
+library(fastDummies)
+library(ROCR)
+```
+
+```{r}
+# Load the Hotel Reservation data from post PDA
+hotelRsrv <- read.csv("post_eda_numerical_dataset1.csv")
+```
+
+```{r}
+hotelRsrv
+```
+
+
+Numerical Variables("arrival_date", "no_of_week_nights","no_of_weekend_nights") removed for very low R-squared values (less than 0.001) for the Linear regression test.
+
+Categorical Variable("required_car_parking_space") removed for very low R-squared values (less than 0.01) for the ANOVA tests.
+
+```{r}
+# Vector for variables that need to be removed from the Random Forest model
+remove_vars <- c("arrival_date", "no_of_week_nights","no_of_weekend_nights","required_car_parking_space")
+
+```
+
+```{r}
+# Remove specified variables
+hotelRsrv <- hotelRsrv[ , !(names(hotelRsrv) %in% remove_vars)]
+
+# Split the data into features and target variable
+y <- hotelRsrv$avg_price_per_room  
+X <- hotelRsrv[ , !(names(hotelRsrv) %in% 'avg_price_per_room')]
+
+```
+
+```{r}
+# Split the dataset into training and testing - 80:20
+set.seed(123)  
+index <- createDataPartition(y, p = 0.8, list = FALSE)
+X_train <- X[index, ]
+X_test <- X[-index, ]
+y_train <- y[index]
+y_test <- y[-index]
+
+```
+
+```{r}
+# Train the model
+rf_model2328066 <- randomForest(x = X_train, y = y_train)
+
+# Print model summary
+print(rf_model2328066)
+
+```
+
+```{r}
+# Make price predictions
+predictedPrice2328066 <- predict(rf_model2328066, X_test)
+
+# Calculate MSE
+mse <- mean((predictedPrice2328066 - y_test)^2)
+print(paste("MSE:", round(mse,2)))
+
+# Calculate RMSE
+rmse <- sqrt(mse)
+print(paste("RMSE:", round(rmse,2)))
+
+# Calculate MAD
+mae <- mean(abs(predictedPrice2328066 - y_test))
+print(paste("MAE:", round(mae,2)))
+
+```
+```{r}
+plot(y_test, predictedPrice2328066, 
+     main = "Actual vs Predicted Price",
+     xlab = "Actual Price", 
+     ylab = "Predicted Price",
+     col = "blue") 
+
+```
+
